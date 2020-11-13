@@ -5,11 +5,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
-
-import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -18,55 +19,33 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ThreadWeb thread_a = new ThreadWeb();
-        String area = "대구";
-        Thread thread1 = new Thread(thread_a, area);
+        CrawlTask crawlTask = new CrawlTask();
+        Timer crawlingCalender = new Timer();
 
-        thread1.start();
-
+        crawlingCalender.scheduleAtFixedRate(crawlTask, calcTaskTime(2),24*60*60*1000);
     }
-}
 
-class ThreadWeb implements Runnable{
-    private Document doc;
-    private String new_patient;
-    private Elements elements;
-    @Override
-    public void run() {
-        synchronized (this) {
-            switch (Thread.currentThread().getName()){
-                case "서울":
-                    try {
-                        doc = Jsoup.connect("https://www.seoul.go.kr/coronaV/coronaStatus.do").get();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+    public long calcTaskTime(int startTime) {
 
-                    elements = doc.select("div.num-wrap-new p");
-
-                    if(elements != null){
-                        new_patient = elements.text();
-                    }
-                    new_patient = new_patient.substring(0, new_patient.indexOf(" "));
-                    System.out.println("신규 확진자 수 : " + Integer.parseInt(new_patient));
-                    break;
-                case "대구":
-                    try {
-                        doc = Jsoup.connect("http://covid19.daegu.go.kr").get();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    elements = doc.select("ul.confirm-box-new");
-
-                    if(elements != null){
-                        new_patient = elements.text();
-                    }
-                    //new_patient = new_patient.substring(0, new_patient.indexOf(" "));
-                    //System.out.println("신규 확진자 수 : " + Integer.parseInt(new_patient));
-                    System.out.println("신규 확진자 수 : " + elements);
-                    break;
-            }
+        if(startTime > 23 || startTime < 0){
+            return 0;
         }
+        Calendar calendar = new GregorianCalendar(Locale.KOREA);
+        calendar.set(Calendar.HOUR_OF_DAY, startTime);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+
+        long nowDate = new Date().getTime();
+
+        if (nowDate > calendar.getTime().getTime()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+        long waiting = (calendar.getTime().getTime() - nowDate)/1000;
+        Log.i("date","Schedule Start Time : " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(calendar.getTime()));
+        Log.i("wating","Waiting : " + waiting+" sec");
+
+        return (int)waiting;
     }
+
 }
+
