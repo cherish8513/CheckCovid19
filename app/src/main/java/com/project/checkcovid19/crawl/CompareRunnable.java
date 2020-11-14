@@ -1,18 +1,20 @@
-package com.project.checkcovid19.service;
+package com.project.checkcovid19.crawl;
 
-import java.text.DateFormat;
+import com.project.checkcovid19.service.CovidDao;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 
-public  class ComparePatient {
+public class CompareRunnable implements Runnable {
     private static String[] area = new String[]{"서울", "부산", "대구", "인천", "광주",
             "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북",
             "전남", "경북", "경남", "제주", "검역"};
-
-    public static void showData(CovidDao dao){
+    private CovidDao dao;
+    public CompareRunnable (CovidDao dao){
+        this.dao = dao;
+    }
+    public void run(){
         ArrayList<Integer> data = dao.compare();
         Date date = new Date();
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy년 MM월 dd HH시 mm분");

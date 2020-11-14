@@ -7,9 +7,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
-class CrawlRunnable implements Runnable{
+public class CrawlRunnable implements Runnable{
     private Document doc;
     private String covid_data;
     private Elements elements;

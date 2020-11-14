@@ -1,6 +1,5 @@
 package com.project.checkcovid19.crawl;
 
-import com.project.checkcovid19.service.ComparePatient;
 import com.project.checkcovid19.service.CovidDao;
 
 import java.util.ArrayList;
