@@ -1,5 +1,8 @@
 package com.project.checkcovid19;
 
+import com.project.checkcovid19.crawl.SearchRunnable;
+import com.project.checkcovid19.service.CovidDao;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -9,8 +12,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.*;
-
 public class ThreadWebTest {
 
     private Document doc;
@@ -19,6 +20,7 @@ public class ThreadWebTest {
     private String[] new_patient = null;
     private int search_num;
     private int start_num;
+    private String test;
 
     @Before
     public void setUp() throws Exception {
@@ -32,6 +34,7 @@ public class ThreadWebTest {
 
     @Test
     public void run() {
+        CovidDao dao = null;
         try {
             doc = Jsoup.connect("http://ncov.mohw.go.kr/bdBoardList_Real.do?brdId=1&brdGubun=13&ncvContSeq=&contSeq=&board_id=&gubun=").get();
         } catch (IOException e) {
@@ -44,15 +47,15 @@ public class ThreadWebTest {
             covid_data = elements.text();
         }
         new_patient = covid_data.split(" ");
-        System.out.println("노룽따다닥 new_patient 초기화 완료");
-        try{
+        try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Thread thread1 = new Thread(new SearchRunnable(new_patient,search_num));
-        Thread thread2 = new Thread(new SearchRunnable(new_patient,search_num*2));
-        thread1.start();
+
+        Thread thread1 = new Thread(new SearchRunnable(new_patient, search_num, dao));
+        Thread thread2 = new Thread(new SearchRunnable(new_patient, search_num * 2, dao));
         thread2.start();
+        thread1.start();
     }
 }

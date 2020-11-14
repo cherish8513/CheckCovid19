@@ -1,9 +1,14 @@
-package com.project.checkcovid19;
+package com.project.checkcovid19.service;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.database.Cursor;
 import android.os.Bundle;
 import android.util.Log;
+
+import com.project.checkcovid19.R;
+import com.project.checkcovid19.crawl.CrawlTask;
+import com.project.checkcovid19.domain.Covid;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -18,8 +23,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        CovidDao covidDao = new CovidDao(this);
 
-        CrawlTask crawlTask = new CrawlTask();
+        CrawlTask crawlTask = new CrawlTask(covidDao);
         Timer crawlingCalender = new Timer();
 
         crawlingCalender.scheduleAtFixedRate(crawlTask, calcTaskTime(2),24*60*60*1000);

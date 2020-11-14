@@ -1,20 +1,25 @@
-package com.project.checkcovid19;
+package com.project.checkcovid19.crawl;
+
+import com.project.checkcovid19.service.CovidDao;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
-class ThreadWeb implements Runnable{
+class CrawlRunnable implements Runnable{
     private Document doc;
     private String covid_data;
     private Elements elements;
     private String[] new_patient;
     private int search_num;
+    private CovidDao dao;
 
-    public ThreadWeb(){
+    public CrawlRunnable(CovidDao dao){
         search_num = 100;
+        this.dao = dao;
     }
     @Override
     public void run() {
@@ -35,8 +40,8 @@ class ThreadWeb implements Runnable{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Thread thread1 = new Thread(new SearchRunnable(new_patient,search_num));
-        Thread thread2 = new Thread(new SearchRunnable(new_patient,search_num*2));
+        Thread thread1 = new Thread(new SearchRunnable(new_patient, search_num, dao));
+        Thread thread2 = new Thread(new SearchRunnable(new_patient,search_num*2, dao));
         thread1.start();
         thread2.start();
     }
