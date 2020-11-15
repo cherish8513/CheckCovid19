@@ -1,6 +1,6 @@
 package com.project.checkcovid19.crawl;
 
-import com.project.checkcovid19.service.CovidDao;
+import com.project.checkcovid19.dto.CovidDao;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

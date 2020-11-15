@@ -1,7 +1,7 @@
 package com.project.checkcovid19;
 
 import com.project.checkcovid19.crawl.SearchRunnable;
-import com.project.checkcovid19.service.CovidDao;
+import com.project.checkcovid19.dto.CovidDao;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

@@ -1,4 +1,4 @@
-package com.project.checkcovid19.service;
+package com.project.checkcovid19.dto;
 
 import android.content.Context;
 
