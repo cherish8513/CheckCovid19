@@ -25,7 +25,7 @@ public class Rankings {
     private final int patient = 2;
     private final int max = 18;
 
-    public Rankings(File path){
+    public Rankings(String path){
         this.path = path+"/log.txt";
         file = new File(path);
         Date date = new Date();
