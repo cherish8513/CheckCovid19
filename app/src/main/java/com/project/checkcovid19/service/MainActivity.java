@@ -5,34 +5,37 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.Manifest;
+import android.appwidget.AppWidgetManager;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Address;
-import android.location.Geocoder;
-import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.ResultReceiver;
-import android.telephony.CarrierConfigManager;
+import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.project.checkcovid19.R;
 import com.project.checkcovid19.constants.Constants;
-import com.project.checkcovid19.crawl.CrawlTask;
-import com.project.checkcovid19.dto.CovidDao;
+import com.project.checkcovid19.dao.CovidDao;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Locale;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,38 +43,153 @@ import java.util.concurrent.TimeUnit;
 import static com.project.checkcovid19.constants.Constants.GPS_ENABLE_REQUEST_CODE;
 import static com.project.checkcovid19.constants.Constants.PERMISSIONS_REQUEST_CODE;
 
-public class MainActivity extends AppCompatActivity  {
 
-    private GpsTracker gpsTracker;
-    String[] REQUIRED_PERMISSIONS  = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+public class MainActivity extends AppCompatActivity  {
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10;
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;
+
+    private Address addressOutput;
+    private String[] REQUIRED_PERMISSIONS  = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+    private TextView covid_information_tv;
+    private TextView covid_ranking_tv;
+    private Button refresh_btn;
+    private GpsService gpsService;
+    private BroadcastReceiver addressReceiver;
+    private boolean addressRequested;
+    private int numOfPatient;
+    private Rankings rankings;
+    private int count;
+    private int rank;
+    private boolean permission;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        CovidDao covidDao = new CovidDao(this);
 
-        CrawlTask crawlTask = new CrawlTask(covidDao);
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
-        executor.scheduleAtFixedRate(crawlTask, calcTaskTime(1),24*60*60*1000, TimeUnit.SECONDS);
-        //Thread thread = new Thread(crawlTask);
-        //thread.start();
+        covid_information_tv = (TextView)findViewById(R.id.covid_information_tv);
+        covid_ranking_tv = (TextView)findViewById(R.id.covid_ranking_tv);
+        refresh_btn = (Button)findViewById(R.id.refresh_btn);
+
+        final CovidDao covidDao = new CovidDao(this);
+        CrawlService crawlTask = new CrawlService(covidDao);
+        final LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        rankings = new Rankings(this.getFilesDir()+"/"+Constants.file_name);
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
+        executor.scheduleAtFixedRate(crawlTask, calcTaskTime(2),24*60*60*1000, TimeUnit.SECONDS);
+        Thread thread = new Thread(crawlTask);
+        thread.start();
+
+
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED){}
+        else{
+            final ServiceConnection conn = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    GpsService.LocalBinder mb = (GpsService.LocalBinder) service;
+                    gpsService = mb.getService();
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    Log.d("서비스 연결", " 해제되었습니다");
+                }
+            };
+
+            Intent intent = new Intent(getApplicationContext(), GpsService.class);
+            bindService(intent, conn, Context.BIND_AUTO_CREATE);
+        }
+
+        addressReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                addressOutput = intent.getExtras().getParcelable(Constants.data_name);
+                if(addressOutput.getAdminArea() == null)
+                    Toast.makeText(MainActivity.this,"미확인 지역입니다.",Toast.LENGTH_LONG).show();
+                else {
+                    numOfPatient = covidDao.select(addressOutput.getAdminArea());
+                }
+                addressRequested = false;
+                rankings.saveLog(addressOutput.getAdminArea(), numOfPatient);
+                count = rankings.getCurrent_num_of_data();
+                rank = rankings.getRank();
+
+                displayAddressOutput();
+                displayRankOutput();
+                updateUIWidgets();
+            }
+        };
+
+        LocalBroadcastManager.getInstance(this).registerReceiver( addressReceiver, new IntentFilter(Constants.service_name));
+
+        addressRequested = true;
+        updateUIWidgets();
+        refresh_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try{
+                    addressRequested = true;
+                    updateUIWidgets();
+                    gpsService.getGps();
+                }catch(SecurityException ex){
+                }
+            }
+        });
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        rankings.closeFile();
+    }
+
+    public void displayAddressOutput(){
+        //covid_information_tv.setText(addressOutput.getAddressLine(0).substring(5) + " 의 신규 확진자 수는 " + numOfPatient + " 명 입니다");
+        covid_information_tv.setText(addressOutput.getAdminArea() + " 신규 확진자 :  " + numOfPatient + " 명");
+        Intent widgetIntent = new Intent(this, CheckCovid19Widget.class);
+        widgetIntent.putExtra("text1",addressOutput.getAdminArea());
+        widgetIntent.putExtra("text2"," 신규 확진자 " + numOfPatient + "명");
+        widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        this.sendBroadcast(widgetIntent);
+    }
+
+    public void displayRankOutput(){
+        covid_ranking_tv.setText(addressOutput.getAdminArea() + "의 신규 확진자 " + numOfPatient + " 명은 현재 " +
+                count + "개의 지역 혹은 날짜에서 " + rank + "위 입니다");
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
 
         if (!checkLocationServicesStatus()) {
 
             showDialogForLocationServiceSetting();
         }else {
-
             checkRunTimePermission();
         }
 
-        gpsTracker = new GpsTracker(MainActivity.this);
-
-        double latitude = gpsTracker.getLatitude();
-        double longitude = gpsTracker.getLongitude();
-
-        String address = getCurrentAddress(latitude, longitude);
-        System.out.println(address);
     }
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+
+    private void updateUIWidgets() {
+        if (addressRequested) {
+            refresh_btn.setEnabled(false);
+        } else {
+            refresh_btn.setEnabled(true);
+        }
+    }
+
 
     public long calcTaskTime(int startTime) {
 
@@ -193,41 +311,6 @@ public class MainActivity extends AppCompatActivity  {
         }
 
     }
-    public String getCurrentAddress( double latitude, double longitude) {
-
-        //지오코더... GPS를 주소로 변환
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-
-        List<Address> addresses;
-
-        try {
-
-            addresses = geocoder.getFromLocation(
-                    latitude,
-                    longitude,
-                    7);
-        } catch (IOException ioException) {
-            //네트워크 문제
-            Toast.makeText(this, "지오코더 서비스 사용불가", Toast.LENGTH_LONG).show();
-            return "지오코더 서비스 사용불가";
-        } catch (IllegalArgumentException illegalArgumentException) {
-            Toast.makeText(this, "잘못된 GPS 좌표", Toast.LENGTH_LONG).show();
-            return "잘못된 GPS 좌표";
-
-        }
-
-
-
-        if (addresses == null || addresses.size() == 0) {
-            Toast.makeText(this, "주소 미발견", Toast.LENGTH_LONG).show();
-            return "주소 미발견";
-
-        }
-
-        Address address = addresses.get(0);
-        return address.getAddressLine(0).toString()+"\n";
-
-    }
 
     private void showDialogForLocationServiceSetting() {
 
@@ -282,47 +365,5 @@ public class MainActivity extends AppCompatActivity  {
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
-
-
-    /* 고급진 GPS 백그라운드 사용법인데 너무 쓰기 어렵다
-    protected void startIntentService() {
-        Intent intent = new Intent(this, FetchAddressIntentService.class);
-        intent.putExtra(Constants.RECEIVER, resultReceiver);
-        intent.putExtra(Constants.LOCATION_DATA_EXTRA, lastLocation);
-        startService(intent);
-    }
-
-
-    class AddressResultReceiver extends ResultReceiver {
-        public AddressResultReceiver(Handler handler) {
-            super(handler);
-        }
-
-        @Override
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
-
-            if (resultData == null) {
-                return;
-            }
-
-            // Display the address string
-            // or an error message sent from the intent service.
-            String addressOutput = resultData.getString(Constants.RESULT_DATA_KEY);
-            if (addressOutput == null) {
-                addressOutput = "";
-            }
-            //displayAddressOutput();
-            System.out.println(addressOutput);
-
-            // Show a toast message if an address was found.
-            if (resultCode == Constants.SUCCESS_RESULT) {
-                Log.i(Constants.TAG,getString(R.string.address_found));
-            }
-
-        }
-    }
-
-     */
-
 }
 

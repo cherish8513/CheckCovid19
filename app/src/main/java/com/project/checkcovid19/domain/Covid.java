@@ -75,18 +75,18 @@ public class Covid {
         return true;
     }
 
-    public boolean select(String area){ //Dto에 위치정보 넣어서 바꾸기
+    public int select(String area){
+        int num = -1;
         if(covidDB == null){
-            return false;
+            return num;
         }
         String sqlSelect = "SELECT " + area + " FROM " + TABLE_NAME + " WHERE _id = 1";
         Cursor cursor = null ;
         cursor = covidDB.rawQuery(sqlSelect, null) ;
         while (cursor.moveToNext()) {
-            int num = cursor.getInt(0);
-            System.out.println(area + " : " + num); //나중에 삭제
+            num = cursor.getInt(0);
         }
-        return true;
+        return num;
     }
 
     public ArrayList<Integer> compare(){

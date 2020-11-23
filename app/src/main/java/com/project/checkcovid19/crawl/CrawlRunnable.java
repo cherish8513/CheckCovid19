@@ -1,6 +1,6 @@
 package com.project.checkcovid19.crawl;
 
-import com.project.checkcovid19.dto.CovidDao;
+import com.project.checkcovid19.dao.CovidDao;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

@@ -4,5 +4,8 @@
     <string name="invalid_lat_long_used">허용되지 않은 주소입니다</string>
     <string name="no_address_found">주소를 찾을 수 없습니다</string>
     <string name="address_found">주소를 찾았습니다</string>
+    <string name="no_location_data_provided">위치없음</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="add_widget">Add widget</string>
 
 </resources>

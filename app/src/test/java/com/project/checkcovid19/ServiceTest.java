@@ -1,7 +1,14 @@
 package com.project.checkcovid19;
 
+import android.content.Context;
+import android.util.Log;
+
+import androidx.test.core.app.ApplicationProvider;
+
+import com.project.checkcovid19.constants.Constants;
 import com.project.checkcovid19.crawl.SearchRunnable;
-import com.project.checkcovid19.dto.CovidDao;
+import com.project.checkcovid19.dao.CovidDao;
+import com.project.checkcovid19.service.Rankings;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -10,9 +17,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 
-public class ThreadWebTest {
+public class ServiceTest {
 
     private Document doc;
     private Elements elements;
@@ -20,7 +28,6 @@ public class ThreadWebTest {
     private String[] new_patient = null;
     private int search_num;
     private int start_num;
-    private String test;
 
     @Before
     public void setUp() throws Exception {
@@ -57,5 +64,9 @@ public class ThreadWebTest {
         Thread thread2 = new Thread(new SearchRunnable(new_patient, search_num * 2, dao));
         thread2.start();
         thread1.start();
+    }
+
+    @Test
+    public void write(){
     }
 }

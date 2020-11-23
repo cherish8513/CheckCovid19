@@ -13,4 +13,14 @@ public final class Constants {
             ".LOCATION_DATA_EXTRA";
     public static final int GPS_ENABLE_REQUEST_CODE = 2001;
     public static final int PERMISSIONS_REQUEST_CODE = 100;
+
+    public static final String LATITUDE = "latitude";
+    public static final String LONGITUDE = "longitude";
+
+    public static final String service_name = "gps-service";
+    public static final String data_name = "address";
+
+    public static final String file_name = "PatientLog";
+    public static final String ACTION_BTN = "ButtonClick";
+
 }
