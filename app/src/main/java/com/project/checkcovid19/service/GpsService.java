@@ -53,7 +53,6 @@ public class GpsService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d("아~","테스형!");
         getGps();
         return super.onStartCommand(intent, flags, startId);
     }
@@ -90,11 +89,8 @@ public class GpsService extends Service {
                         }
                         address = addresses.get(0);
                         Intent intent = new Intent(Constants.service_name);
-                        Intent widget_intent = new Intent(Constants.service_name).setAction(Constants.ACTION_BTN);
                         intent.putExtra(Constants.data_name, address);
-                        widget_intent.putExtra(Constants.data_name, address);
                         LocalBroadcastManager.getInstance(GpsService.this).sendBroadcast(intent);
-                        LocalBroadcastManager.getInstance(GpsService.this).sendBroadcast(widget_intent);
                     }
                 });
                 Log.d("test", "onLocationChanged, location:" + location);

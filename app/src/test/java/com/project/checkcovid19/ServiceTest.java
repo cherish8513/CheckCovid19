@@ -66,7 +66,4 @@ public class ServiceTest {
         thread1.start();
     }
 
-    @Test
-    public void write(){
-    }
 }

@@ -82,28 +82,21 @@ public class MainActivity extends AppCompatActivity  {
         Thread thread = new Thread(crawlTask);
         thread.start();
 
+        final ServiceConnection conn = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                GpsService.LocalBinder mb = (GpsService.LocalBinder) service;
+                gpsService = mb.getService();
+            }
 
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                Log.d("서비스 연결", " 해제되었습니다");
+            }
+        };
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
-                PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
-                PackageManager.PERMISSION_GRANTED){}
-        else{
-            final ServiceConnection conn = new ServiceConnection() {
-                @Override
-                public void onServiceConnected(ComponentName name, IBinder service) {
-                    GpsService.LocalBinder mb = (GpsService.LocalBinder) service;
-                    gpsService = mb.getService();
-                }
-
-                @Override
-                public void onServiceDisconnected(ComponentName name) {
-                    Log.d("서비스 연결", " 해제되었습니다");
-                }
-            };
-
-            Intent intent = new Intent(getApplicationContext(), GpsService.class);
-            bindService(intent, conn, Context.BIND_AUTO_CREATE);
-        }
+        Intent intent = new Intent(getApplicationContext(), GpsService.class);
+        bindService(intent, conn, Context.BIND_AUTO_CREATE);
 
         addressReceiver = new BroadcastReceiver() {
             @Override
@@ -127,7 +120,7 @@ public class MainActivity extends AppCompatActivity  {
 
         LocalBroadcastManager.getInstance(this).registerReceiver( addressReceiver, new IntentFilter(Constants.service_name));
 
-        addressRequested = true;
+        addressRequested = false;
         updateUIWidgets();
         refresh_btn.setOnClickListener(new View.OnClickListener() {
             @Override

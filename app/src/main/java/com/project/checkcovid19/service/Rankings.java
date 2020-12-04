@@ -51,9 +51,6 @@ public class Rankings {
                 }
                 current_num_of_data += 3;
             }
-
-            for(int i = 0; i < text.size(); i+=3)
-                System.out.println("지역 : " + text.get(i+the_area) + " 환자수 : " + Integer.parseInt(text.get(i+patient)));
         }
     }
 
@@ -110,11 +107,29 @@ public class Rankings {
 
     public void closeFile(){
 
+        int savePoint = current_num_of_data % max;
+        ArrayList<String> save_text = new ArrayList<>();
+        if (current_num_of_data >= max) {
+            for(int i = 0; i < max; i+=3) {
+                save_text.add(text.get((savePoint + i)%max + day));
+                save_text.add(text.get((savePoint + i)%max + the_area));
+                save_text.add(text.get((savePoint + i)%max + patient));
+
+                System.out.println(i+"번째 오래된 데이터 : " +text.get((savePoint + i)%max+the_area));
+            }
+        }
+        else {
+            for(int i = text.size()-1; i > 0; i -=3) {
+                save_text.add(text.get(i - patient));
+                save_text.add(text.get(i - the_area));
+                save_text.add(text.get(i - day));
+            }
+        }
         BufferedWriter bufferedWriter = null;
         try {
             bufferedWriter = new BufferedWriter(new FileWriter(path));
-            for(int i = 0; i < text.size(); i+=3) {
-                bufferedWriter.write(text.get(i+day) + " " + text.get(i+the_area) + " " + text.get(i+patient));
+            for(int i = 0; i < save_text.size(); i+=3) {
+                bufferedWriter.write(save_text.get(i+day) + " " + save_text.get(i+the_area) + " " + save_text.get(i+patient));
                 bufferedWriter.newLine();
             }
             bufferedWriter.flush();
